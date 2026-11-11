@@ -1,0 +1,63 @@
+name: Release
+
+# 推一個版號標籤（例如 v1.0.0）就會自動編譯 macOS App 並建立 GitHub Release。
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "版號標籤（例如 v1.0.0）"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 決定版號
+        id: ver
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: 編譯（Universal：Apple Silicon + Intel）
+        run: |
+          chmod +x build.sh
+          APP_DIR=dist UNIVERSAL=1 VERSION="${{ steps.ver.outputs.version }}" ./build.sh
+          lipo -info "dist/Rakazo 自架.app/Contents/MacOS/RakazoServer"
+
+      - name: 打包 zip
+        run: |
+          cd dist
+          ditto -c -k --sequesterRsrc --keepParent "Rakazo 自架.app" "RakazoServer-${{ steps.ver.outputs.tag }}-macOS.zip"
+          shasum -a 256 RakazoServer-*.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: 建立 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          {
+            echo "## 下載"
+            echo "下載下方的 **RakazoServer-${TAG}-macOS.zip**，解壓縮後把「Rakazo 自架.app」拖進「應用程式」資料夾。"
+            echo
+            echo "## 第一次打開"
+            echo "這個 App 沒有 Apple 開發者簽名，第一次打開 macOS 會擋下來："
+            echo "1. 先雙擊打開一次，看到警告後按「完成」。"
+            echo "2. 到「系統設定 → 隱私權與安全性」，往下找到「仍要打開」，按下去並輸入密碼。"
+            echo
+            echo "需求：macOS 14 以上（Apple Silicon 或 Intel）、Docker Desktop、Tailscale。"
+          } > notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/RakazoServer-*.zip dist/SHA256SUMS.txt --clobber
+          else
+            gh release create "$TAG" dist/RakazoServer-*.zip dist/SHA256SUMS.txt \
+              --title "Rakazo 自架 $TAG" --notes-file notes.md --target "$GITHUB_SHA"
+          fi

@@ -2,6 +2,16 @@
 
 一個 macOS SwiftUI 小工具，用來安裝與管理**自架版 Rakazo**（Docker published images + Tailscale HTTPS）。
 
+## 下載（不用自己編譯）
+
+到 [**Releases**](https://github.com/agent-dailywork/rakazo-server-app/releases/latest) 下載 `RakazoServer-vX.Y.Z-macOS.zip`，解壓縮後把「Rakazo 自架.app」拖進「應用程式」資料夾。
+
+**第一次打開**：這個 App 沒有 Apple 開發者簽名，macOS 會擋下來。
+1. 先雙擊打開一次，看到警告後按「完成」。
+2. 到「系統設定 → 隱私權與安全性」，往下找到「仍要打開」，按下去並輸入密碼。
+
+之後就能正常打開。
+
 | 分頁 | 功能 |
 |---|---|
 | 總覽 | 開啟時自動健康檢查（Docker、服務、本機網頁、Tailscale、OpenRouter、Composio、寄信…），每項附「怎麼處理」；啟動／重啟、停止、更新（先自動備份）、備份資料庫、最近的錯誤、診斷報告 |
@@ -12,11 +22,11 @@
 
 ## 需求
 
-- macOS 14+（Apple Silicon）
-- Xcode Command Line Tools（`xcode-select --install`），用 `swiftc` 編譯
+- macOS 14+（Apple Silicon 或 Intel）
 - Docker Desktop 26+、Tailscale
+- 自己編譯才需要：Xcode Command Line Tools（`xcode-select --install`）
 
-## 編譯與安裝
+## 自己編譯與安裝
 
 ```sh
 git clone https://github.com/agent-dailywork/rakazo-server-app ~/rakazo/tools/RakazoServer
@@ -24,7 +34,14 @@ cd ~/rakazo/tools/RakazoServer
 ./build.sh   # 編譯並安裝到 /Applications/Rakazo 自架.app（ad-hoc 簽章）
 ```
 
-第一次打開若被 Gatekeeper 擋下：在 Finder 對 App 按右鍵 →「打開」。
+## 發行新版本（維護者）
+
+Release 由 GitHub Actions（`.github/workflows/release.yml`）在 macOS 機器上自動編譯：
+
+- 推一個版號標籤：`git tag v1.0.1 && git push origin v1.0.1`，或
+- 到 Actions → Release → **Run workflow**，填入版號（例如 `v1.0.1`）。
+
+完成後會產生 Universal（Apple Silicon + Intel）的 zip 與 `SHA256SUMS.txt`。
 
 ## 安全
 
