@@ -1,0 +1,7 @@
+RakazoServer
+*.app
+.DS_Store
+.env
+.env.*
+backups/
+diagnostics/
